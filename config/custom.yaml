@@ -6,22 +6,18 @@ zotero:
 email:
   sender: ${oc.env:SENDER}
   receiver: ${oc.env:RECEIVER}
-  smtp_server: smtp.qq.com
+  smtp_server: smtp.163.com
   smtp_port: 465
   sender_password: ${oc.env:SENDER_PASSWORD}
 
 llm:
-  api:
-    key: ${oc.env:OPENAI_API_KEY}
-    base_url: ${oc.env:OPENAI_API_BASE}
-  api_mode: chat_completion
-  generation_kwargs:
-    model: gpt-4o-mini
+  enabled: false
 
 source:
   arxiv:
-    category: ["cs.AI","cs.CV","cs.LG","cs.CL"]
+    category: ["cs.CR","cs.LG","cs.AI"]
 
 executor:
   debug: ${oc.env:DEBUG,null}
   source: ['arxiv']
+  reranker: local

@@ -12,6 +12,14 @@ def test_render_email_with_papers():
     assert "MIT" in html
 
 
+def test_render_email_without_llm_uses_abstract():
+    paper = make_sample_paper(tldr=None, affiliations=None)
+    html = render_email([paper])
+    assert "<strong>Abstract:</strong>" in html
+    assert paper.abstract in html
+    assert "<strong>TLDR:</strong>" not in html
+
+
 def test_render_email_empty_list():
     html = render_email([])
     assert "No Papers Today" in html

@@ -209,6 +209,32 @@ def test_run_end_to_end(config, monkeypatch):
     assert "text/html" in email_body
 
 
+def test_run_without_llm_uses_abstract(config, monkeypatch):
+    """A local reranker can send a paper digest without constructing an API client."""
+    import smtplib
+    from omegaconf import open_dict
+    from tests.canned_responses import make_sample_paper, make_stub_smtp, make_stub_zotero_client
+    import zotero_arxiv_daily.retriever.arxiv_retriever  # noqa: F401
+    from zotero_arxiv_daily.retriever.base import registered_retrievers
+
+    with open_dict(config):
+        config.llm.enabled = False
+        config.executor.reranker = "local"
+    paper = make_sample_paper(tldr=None)
+    monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: make_stub_zotero_client())
+    monkeypatch.setattr("zotero_arxiv_daily.executor.OpenAI", lambda **kw: pytest.fail("LLM client constructed"))
+    monkeypatch.setattr(registered_retrievers["arxiv"], "retrieve_papers", lambda self: [paper])
+    monkeypatch.setattr("zotero_arxiv_daily.executor.get_reranker_cls", lambda name: lambda cfg: type("Reranker", (), {"rerank": lambda self, papers, corpus: papers})())
+    sent = []
+    monkeypatch.setattr(smtplib, "SMTP", make_stub_smtp(sent))
+
+    Executor(config).run()
+
+    assert len(sent) == 1
+    assert "<strong>Abstract:</strong>" in sent[0][2]
+    assert paper.abstract in sent[0][2]
+
+
 def test_run_no_papers_send_empty_false(config, monkeypatch):
     """When no papers are found and send_empty=false, no email is sent."""
     import smtplib
